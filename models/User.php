@@ -60,6 +60,19 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     }
 
     /**
+     * {@inheritDoc}
+     * @see \yii\base\Model::beforeValidate()
+     */
+    public function beforeValidate()
+    {
+        if ($this->isNewRecord) {
+            $this->authkey = \Yii::$app->security->generateRandomString(32);
+        }
+        
+        return parent::beforeValidate();
+    }
+
+    /**
      * Finds an identity by the given ID.
      * @param string|int $id the ID to be looked for
      * @return IdentityInterface the identity object that matches the given ID.
@@ -118,5 +131,25 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     public function validateAuthKey($authKey)
     {
         return $this->getAuthKey() === $authKey;
+    }
+
+    /**
+     * Finds user by nickname
+     *
+     * @param string $nickname
+     * @return static|null
+     */
+    public static function findByNickname($nickname)
+    {
+        return static::findOne(['nickname' => $nickname]);
+    }
+    
+    /**
+     * Username getter wich returns nickname as username
+     * @return string
+     */
+    public function getUsername()
+    {
+        return $this->nickname;
     }
 }
