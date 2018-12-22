@@ -19,7 +19,9 @@ class m181222_134519_create_user_table extends Migration
                 ->unique(),
             'balance' => $this->decimal(65, 2)
                 ->notNull()
-                ->defaultValue(0)
+                ->defaultValue(0),
+            'authkey' => $this->char(32)
+                ->notNull()
         ]);
     }
 
