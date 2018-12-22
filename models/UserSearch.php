@@ -50,7 +50,7 @@ class UserSearch extends User
         ]);
 
         $this->load($params);
-
+        
         if (!$this->validate()) {
             // uncomment the following line if you do not want to return any records when validation fails
             // $query->where('0=1');
@@ -63,8 +63,7 @@ class UserSearch extends User
             'balance' => $this->balance,
         ]);
 
-        $query->andFilterWhere(['like', 'nickname', $this->nickname])
-            ->andFilterWhere(['like', 'authkey', $this->authkey]);
+        $query->andFilterWhere(['like', 'nickname', $this->nickname]);
 
         return $dataProvider;
     }

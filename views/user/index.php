@@ -24,7 +24,6 @@ $this->params['breadcrumbs'][] = $this->title;
 
             'nickname',
             'balance',
-
         ],
     ]); ?>
     <?php Pjax::end(); ?>

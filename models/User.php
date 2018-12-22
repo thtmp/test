@@ -16,6 +16,36 @@ use yii\web\IdentityInterface;
 class User extends \yii\db\ActiveRecord implements IdentityInterface
 {
     /**
+     * Maximum negative balance that is allowed for each user
+     * @var integer
+     */
+    const MAX_NEGATIVE_BALANCE = 1000;
+
+    /**
+     * The scenario used to transfer balance between users
+     * @var string
+     */
+    const SCENARIO_TRANSFER = 'transfer';
+
+    /**
+     * The amount to be transfered to another user in transfer scenario
+     * @var float
+     */
+    public $transferAmount;
+
+    /**
+     * Target user's nickname to receive the balance in transfer scenario
+     * @var string
+     */
+    public $targetUser;
+
+    /**
+     * An instance of the target user
+     * @var User
+     */
+    private $targetUserInstance;
+    
+    /**
      * {@inheritdoc}
      */
     public static function tableName()
@@ -25,15 +55,44 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
 
     /**
      * {@inheritdoc}
+     * @see \yii\db\ActiveRecord::transactions()
+     */
+    public function transactions()
+    {
+        return [
+            self::SCENARIO_TRANSFER => self::OP_ALL
+        ];
+    }
+
+    /**
+     *
+     * {@inheritdoc}
+     * @see \yii\base\Model::scenarios()
+     */
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        
+        $scenarios[self::SCENARIO_TRANSFER] = ['nickname', 'balance', 'transferAmount', 'targetUser'];
+        
+        return $scenarios;
+    }
+    
+    /**
+     * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            [['nickname', 'authkey'], 'required'],
+            ['nickname', 'required'],
+            ['authkey', 'required'],
             [['balance'], 'number'],
             [['nickname'], 'string', 'max' => 50],
             [['authkey'], 'string', 'max' => 32],
             [['nickname'], 'unique'],
+            [['transferAmount', 'targetUser'], 'required', 'on' => [self::SCENARIO_TRANSFER]],
+            ['transferAmount', 'number', 'min' => 0.01, 'max' => (self::MAX_NEGATIVE_BALANCE + $this->balance), 'on' => self::SCENARIO_TRANSFER],
+            ['targetUser', 'validateTargetUser'],
         ];
     }
 
@@ -47,7 +106,31 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
             'nickname' => Yii::t('app', 'Nickname'),
             'balance' => Yii::t('app', 'Balance'),
             'authkey' => Yii::t('app', 'Authkey'),
+            'transferAmount' => Yii::t('app', 'Transfer Amount'),
+            'targetUser' => Yii::t('app', 'Target User'),
         ];
+    }
+
+    /**
+     * Validates the targetUser.
+     * This method serves as the inline validation for targetUser.
+     *
+     * @param string $attribute the attribute currently being validated
+     * @param array $params the additional name-value pairs given in the rule
+     */
+    public function validateTargetUser($attribute, $params)
+    {
+        if (!$this->hasErrors()) {
+            if ($this->targetUser == $this->nickname) {
+                $this->addError($attribute, Yii::t('app', "You can't transfer balance to yourself!"));
+            }
+            
+            if (! ($this->targetUserInstance = static::findByNickname($this->targetUser))) {
+                $this->addError($attribute, Yii::t('app', '{targetUser} dose not exist!', [
+                    'targetUser' => $this->getAttributeLabel($attribute),
+                ]));
+            }
+        }
     }
 
     /**
@@ -70,6 +153,31 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
         }
         
         return parent::beforeValidate();
+    }
+
+    /**
+     * {@inheritdoc}
+     * @see \yii\db\BaseActiveRecord::beforeSave()
+     */
+    public function beforeSave($insert)
+    {
+        if (parent::beforeSave($insert)) {
+            if ($this->scenario === self::SCENARIO_TRANSFER) {
+                $this->balance -= $this->transferAmount;
+                $this->targetUserInstance->balance += $this->transferAmount;
+                if ($this->targetUserInstance->save()) {
+                    return true;
+                } else {
+                    $this->balance += $this->transferAmount;
+                    $this->targetUserInstance->balance -= $this->transferAmount;
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        return false;
     }
 
     /**
