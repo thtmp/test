@@ -72,9 +72,9 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     public function scenarios()
     {
         $scenarios = parent::scenarios();
-        
+
         $scenarios[self::SCENARIO_TRANSFER] = ['nickname', 'balance', 'transferAmount', 'targetUser'];
-        
+
         return $scenarios;
     }
     
@@ -114,20 +114,19 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     /**
      * Validates the targetUser.
      * This method serves as the inline validation for targetUser.
-     *
      * @param string $attribute the attribute currently being validated
      * @param array $params the additional name-value pairs given in the rule
      */
     public function validateTargetUser($attribute, $params)
     {
-        if (!$this->hasErrors()) {
+        if (! $this->hasErrors()) {
             if ($this->targetUser == $this->nickname) {
                 $this->addError($attribute, Yii::t('app', "You can't transfer balance to yourself!"));
             }
-            
+
             if (! ($this->targetUserInstance = static::findByNickname($this->targetUser))) {
                 $this->addError($attribute, Yii::t('app', '{targetUser} dose not exist!', [
-                    'targetUser' => $this->getAttributeLabel($attribute),
+                    'targetUser' => $this->getAttributeLabel($attribute)
                 ]));
             }
         }
@@ -151,10 +150,10 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
         if ($this->isNewRecord) {
             $this->authkey = \Yii::$app->security->generateRandomString(32);
         }
-        
+
         return parent::beforeValidate();
     }
-
+    
     /**
      * {@inheritdoc}
      * @see \yii\db\BaseActiveRecord::beforeSave()
@@ -163,6 +162,10 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     {
         if (parent::beforeSave($insert)) {
             if ($this->scenario === self::SCENARIO_TRANSFER) {
+                if ((floatval(static::findOne($this->id)->balance) - $this->transferAmount) < (- 1 * self::MAX_NEGATIVE_BALANCE)) {
+                    return false;
+                }
+
                 $this->balance -= $this->transferAmount;
                 $this->targetUserInstance->balance += $this->transferAmount;
                 if ($this->targetUserInstance->save()) {
@@ -173,10 +176,10 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
                     return false;
                 }
             }
-            
+
             return true;
         }
-        
+
         return false;
     }
 

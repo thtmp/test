@@ -43,7 +43,7 @@ class UserController extends Controller
     {
         $searchModel = new UserSearch();
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-        
+
         return $this->render('index', [
             'searchModel' => $searchModel,
             'dataProvider' => $dataProvider,
@@ -60,14 +60,14 @@ class UserController extends Controller
         if (! $model) {
             throw new AccessDeniedException();
         }
-        
+
         $model->scenario = User::SCENARIO_TRANSFER;
-        
+
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             \Yii::$app->session->setFlash('transfer-done', true);
             return $this->redirect(['user/transfer-done']);
         }
-        
+
         return $this->render('transfer', [
             'model' => $model
         ]);
@@ -83,7 +83,7 @@ class UserController extends Controller
         if (! $model) {
             throw new AccessDeniedException();
         }
-        
+
         return $this->render('transfer_done', [
             'model' => $model
         ]);
