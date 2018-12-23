@@ -1,9 +1,14 @@
 <?php
 
+use app\models\User;
+
 class LoginFormCest
 {
     public function _before(\FunctionalTester $I)
     {
+        \Yii::$app->db->createCommand('TRUNCATE ' . User::tableName())->execute();
+        $I->haveRecord(User::className(), ['id' => 1, 'nickname' => 'user1', 'authkey' => 'authkey1']);
+        
         $I->amOnRoute('site/login');
     }
 
@@ -16,44 +21,50 @@ class LoginFormCest
     // demonstrates `amLoggedInAs` method
     public function internalLoginById(\FunctionalTester $I)
     {
-        $I->amLoggedInAs(100);
+        $I->amLoggedInAs(1);
         $I->amOnPage('/');
-        $I->see('Logout (admin)');
+        $I->see('Logout (user1)');
     }
 
     // demonstrates `amLoggedInAs` method
     public function internalLoginByInstance(\FunctionalTester $I)
     {
-        $I->amLoggedInAs(\app\models\User::findByUsername('admin'));
+        $I->amLoggedInAs(\app\models\User::findByNickname('user1'));
         $I->amOnPage('/');
-        $I->see('Logout (admin)');
+        $I->see('Logout (user1)');
     }
 
     public function loginWithEmptyCredentials(\FunctionalTester $I)
     {
         $I->submitForm('#login-form', []);
         $I->expectTo('see validations errors');
-        $I->see('Username cannot be blank.');
-        $I->see('Password cannot be blank.');
+        $I->see('Nickname cannot be blank.');
     }
 
-    public function loginWithWrongCredentials(\FunctionalTester $I)
+    public function loginWithInvalidNickname(\FunctionalTester $I)
     {
         $I->submitForm('#login-form', [
-            'LoginForm[username]' => 'admin',
-            'LoginForm[password]' => 'wrong',
+            'LoginForm[nickname]' => Yii::$app->security->generateRandomString(51),
         ]);
         $I->expectTo('see validations errors');
-        $I->see('Incorrect username or password.');
+        $I->see('Nickname should contain at most 50 characters.');
     }
 
-    public function loginSuccessfully(\FunctionalTester $I)
+    public function loginWithExsitingNickname(\FunctionalTester $I)
     {
         $I->submitForm('#login-form', [
-            'LoginForm[username]' => 'admin',
-            'LoginForm[password]' => 'admin',
+            'LoginForm[nickname]' => 'user1',
         ]);
-        $I->see('Logout (admin)');
+        $I->see('Logout (user1)');
         $I->dontSeeElement('form#login-form');              
+    }
+
+    public function loginWithNonExistanceNickname(\FunctionalTester $I)
+    {
+        $I->submitForm('#login-form', [
+            'LoginForm[nickname]' => 'user2',
+        ]);
+        $I->see('Logout (user2)');
+        $I->dontSeeElement('form#login-form');
     }
 }

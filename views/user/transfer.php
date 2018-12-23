@@ -20,7 +20,9 @@ $this->params['breadcrumbs'][] = Yii::t('app', 'Transfer');
 
         <?php Yii::$app->session->setFlash('success', $currentBalance . '<br>' . Yii::t('app', 'Maximum transferable amount') . ': ' . $maxTransferAmount); ?>
 
-        <?php $form = ActiveForm::begin(); ?>
+        <?php $form = ActiveForm::begin([
+            'id' => 'transfer-form',
+        ]); ?>
 
         <?= $form->field($model, 'transferAmount')->textInput(['maxlength' => true]) ?>
 
