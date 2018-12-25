@@ -121,7 +121,7 @@ class User extends \yii\db\ActiveRecord implements IdentityInterface
     {
         if (! $this->hasErrors()) {
             if ($this->targetUser == $this->nickname) {
-                $this->addError($attribute, Yii::t('app', "You can't transfer balance to yourself!"));
+                $this->addError($attribute, Yii::t('app', "You can't transfer to yourself!"));
             }
 
             if (! ($this->targetUserInstance = static::findByNickname($this->targetUser))) {
